@@ -9,7 +9,12 @@ import (
 )
 
 func main() {
-	repo := repository.NewInMemoryTaskRepository()
+	repo, err := repository.NewSQLiteTaskRepository("tasks.db")
+	if err != nil {
+		log.Fatalf("Failed to initialize repository: %v", err)
+	}
+	defer repo.Close()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"message": "Hello from Task Manager API"}`)

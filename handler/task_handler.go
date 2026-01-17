@@ -8,7 +8,7 @@ import (
 	"task-manager-api/repository"
 )
 
-func RegisterTaskRoutes(repo *repository.InMemoryTaskRepository) {
+func RegisterTaskRoutes(repo repository.TaskRepository) {
 	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -22,10 +22,14 @@ func RegisterTaskRoutes(repo *repository.InMemoryTaskRepository) {
 	})
 }
 
-func getAllTasks(w http.ResponseWriter, r *http.Request, repo *repository.InMemoryTaskRepository) {
+func getAllTasks(w http.ResponseWriter, r *http.Request, repo repository.TaskRepository) {
 	w.Header().Set("Content-Type", "application/json")
 
-	tasks := repo.GetAll()
+	tasks, err := repo.GetAll()
+	if err != nil {
+		http.Error(w, "Error fetching tasks", http.StatusInternalServerError)
+		return
+	}
 	jsonData, err := json.Marshal(tasks)
 	if err != nil {
 		http.Error(w, "Error marshaling tasks", http.StatusInternalServerError)
@@ -34,18 +38,29 @@ func getAllTasks(w http.ResponseWriter, r *http.Request, repo *repository.InMemo
 	fmt.Fprintf(w, string(jsonData))
 }
 
-func createTask(w http.ResponseWriter, r *http.Request, repo *repository.InMemoryTaskRepository) {
+func createTask(w http.ResponseWriter, r *http.Request, repo repository.TaskRepository) {
 	var newTask domain.Task
+
 	err := json.NewDecoder(r.Body).Decode(&newTask)
+
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
-	createdTask, err := json.Marshal(repo.Create(newTask))
+	createdTask, err := repo.Create(newTask)
+
+	if err != nil {
+		http.Error(w, "Error creating task", http.StatusInternalServerError)
+		return
+	}
+
+	taskResponse, err := json.Marshal(createdTask)
 	if err != nil {
 		http.Error(w, "Error creating response", http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, string(createdTask))
+
+	fmt.Fprintf(w, string(taskResponse))
 }
