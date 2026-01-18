@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"errors"
 	"task-manager-api/domain"
 	"task-manager-api/dto"
 	"task-manager-api/repository"
@@ -17,10 +16,10 @@ func NewTaskUsecase(repo repository.TaskRepository) *TaskUsecase {
 
 func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseDTO, error) {
 	if createReq.Title == "" {
-		return dto.TaskResponseDTO{}, errors.New("title is required")
+		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Title", Message: "title is required"}
 	}
 	if createReq.Description == "" {
-		return dto.TaskResponseDTO{}, errors.New("description is required")
+		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Description", Message: "description is required"}
 	}
 
 	task := domain.Task{
@@ -83,11 +82,11 @@ func (u *TaskUsecase) GetByID(id int) (dto.TaskResponseDTO, error) {
 
 func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskResponseDTO, error) {
 	if updateReq.Title == "" {
-		return dto.TaskResponseDTO{}, errors.New("Title is required")
+		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Title", Message: "Title is required"}
 	}
 
 	if updateReq.Description == "" {
-		return dto.TaskResponseDTO{}, errors.New("Description is required")
+		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Description", Message: "Description is required"}
 	}
 
 	existingTask, err := u.repo.GetByID(id)

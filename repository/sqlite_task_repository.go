@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
 	"os"
 	"task-manager-api/domain"
 
@@ -27,7 +26,7 @@ func NewSQLiteTaskRepository(dbPath string) (*SQLiteTaskRepository, error) {
 
 	err = db.Ping()
 	if err != nil {
-		return nil, err
+		return nil, &domain.DatabaseError{Operation: "connect", Err: err}
 	}
 
 	repo := &SQLiteTaskRepository{db: db}
@@ -35,7 +34,7 @@ func NewSQLiteTaskRepository(dbPath string) (*SQLiteTaskRepository, error) {
 	if !dbExists {
 		err := repo.initSchema()
 		if err != nil {
-			return nil, err
+			return nil, &domain.DatabaseError{Operation: "init schema", Err: err}
 		}
 	}
 	return repo, nil
@@ -53,7 +52,7 @@ func (r *SQLiteTaskRepository) initSchema() error {
 	_, err = r.db.Exec(sqlString)
 
 	if err != nil {
-		return err
+		return &domain.DatabaseError{Operation: "init schema", Err: err}
 	}
 
 	return nil
@@ -64,7 +63,7 @@ func (r *SQLiteTaskRepository) GetAll() ([]domain.Task, error) {
 
 	rows, err := r.db.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, &domain.DatabaseError{Operation: "get all tasks", Err: err}
 	}
 
 	defer rows.Close()
@@ -76,14 +75,14 @@ func (r *SQLiteTaskRepository) GetAll() ([]domain.Task, error) {
 
 		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.Priority)
 		if err != nil {
-			return nil, err
+			return nil, &domain.DatabaseError{Operation: "scan task row", Err: err}
 		}
 
 		tasks = append(tasks, task)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, &domain.DatabaseError{Operation: "iterate task rows", Err: err}
 	}
 
 	return tasks, nil
@@ -94,12 +93,12 @@ func (r *SQLiteTaskRepository) Create(task domain.Task) (domain.Task, error) {
 
 	result, err := r.db.Exec(insertSQL, task.Title, task.Description, task.Status, task.Priority)
 	if err != nil {
-		return domain.Task{}, err
+		return domain.Task{}, &domain.DatabaseError{Operation: "insert task", Err: err}
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return domain.Task{}, err
+		return domain.Task{}, &domain.DatabaseError{Operation: "get last insert id", Err: err}
 	}
 
 	task.ID = int(id)
@@ -118,9 +117,9 @@ func (r *SQLiteTaskRepository) GetByID(id int) (domain.Task, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domain.Task{}, errors.New("task not found")
+			return domain.Task{}, &domain.NotFoundError{Resource: "Task Get By ID", ID: id}
 		}
-		return domain.Task{}, err
+		return domain.Task{}, &domain.DatabaseError{Operation: "get task by id", Err: err}
 	}
 
 	return task, nil
@@ -130,14 +129,14 @@ func (r *SQLiteTaskRepository) Update(updatedTask domain.Task) (domain.Task, err
 
 	_, err := r.GetByID(updatedTask.ID)
 	if err != nil {
-		return domain.Task{}, err
+		return domain.Task{}, &domain.DatabaseError{Operation: "get task by id before update", Err: err}
 	}
 
 	query := "UPDATE tasks SET title = ?, description = ?, status = ?, priority = ? WHERE id = ?"
 
 	_, err = r.db.Exec(query, updatedTask.Title, updatedTask.Description, updatedTask.Status, updatedTask.Priority, updatedTask.ID)
 	if err != nil {
-		return domain.Task{}, err
+		return domain.Task{}, &domain.DatabaseError{Operation: "update task", Err: err}
 	}
 
 	return updatedTask, nil
@@ -147,14 +146,14 @@ func (r *SQLiteTaskRepository) Delete(id int) error {
 	_, err := r.GetByID(id)
 
 	if err != nil {
-		return err
+		return &domain.DatabaseError{Operation: "get task by id before delete", Err: err}
 	}
 
 	query := "DELETE FROM tasks WHERE id = ?"
 
 	_, err = r.db.Exec(query, id)
 	if err != nil {
-		return err
+		return &domain.DatabaseError{Operation: "delete task", Err: err}
 	}
 
 	return nil

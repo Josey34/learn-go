@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"task-manager-api/domain"
 )
 
@@ -48,7 +47,7 @@ func (r *InMemoryTaskRepository) GetByID(id int) (domain.Task, error) {
 		}
 	}
 
-	return domain.Task{}, errors.New("task not found")
+	return domain.Task{}, &domain.NotFoundError{Resource: "Task", ID: id}
 }
 
 func (r *InMemoryTaskRepository) Update(updatedTask domain.Task) (domain.Task, error) {
@@ -59,7 +58,7 @@ func (r *InMemoryTaskRepository) Update(updatedTask domain.Task) (domain.Task, e
 		}
 	}
 
-	return domain.Task{}, errors.New("task not found")
+	return domain.Task{}, &domain.NotFoundError{Resource: "Task", ID: updatedTask.ID}
 }
 
 func (r *InMemoryTaskRepository) Delete(id int) error {
@@ -70,7 +69,7 @@ func (r *InMemoryTaskRepository) Delete(id int) error {
 		}
 	}
 
-	return errors.New("task not found")
+	return &domain.NotFoundError{Resource: "Task", ID: id}
 }
 
 func (r *InMemoryTaskRepository) Close() error {

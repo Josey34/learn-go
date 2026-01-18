@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"net/http"
 	"task-manager-api/usecase"
 )
 
-func SetupRoutes(uc *usecase.TaskUsecase) {
-	RegisterTaskRoutes(uc)
+func SetupRoutes(mux *http.ServeMux, uc *usecase.TaskUsecase) {
+	RegisterTaskRoutes(mux, uc)
 }
