@@ -4,28 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"task-manager-api/domain"
-	"task-manager-api/repository"
+	"task-manager-api/dto"
+	"task-manager-api/usecase"
 )
 
-func RegisterTaskRoutes(repo repository.TaskRepository) {
+func RegisterTaskRoutes(uc *usecase.TaskUsecase) {
 	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			getAllTasks(w, r, repo)
+			getAllTasks(w, r, uc)
 
 		case http.MethodPost:
-			createTask(w, r, repo)
+			createTask(w, r, uc)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
 }
 
-func getAllTasks(w http.ResponseWriter, r *http.Request, repo repository.TaskRepository) {
+func getAllTasks(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase) {
 	w.Header().Set("Content-Type", "application/json")
 
-	tasks, err := repo.GetAll()
+	tasks, err := uc.GetAllTasks()
 	if err != nil {
 		http.Error(w, "Error fetching tasks", http.StatusInternalServerError)
 		return
@@ -38,8 +38,8 @@ func getAllTasks(w http.ResponseWriter, r *http.Request, repo repository.TaskRep
 	fmt.Fprintf(w, string(jsonData))
 }
 
-func createTask(w http.ResponseWriter, r *http.Request, repo repository.TaskRepository) {
-	var newTask domain.Task
+func createTask(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase) {
+	var newTask dto.CreateTaskDTO
 
 	err := json.NewDecoder(r.Body).Decode(&newTask)
 
@@ -49,7 +49,7 @@ func createTask(w http.ResponseWriter, r *http.Request, repo repository.TaskRepo
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	createdTask, err := repo.Create(newTask)
+	createdTask, err := uc.CreateTask(newTask)
 
 	if err != nil {
 		http.Error(w, "Error creating task", http.StatusInternalServerError)

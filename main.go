@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"task-manager-api/handler"
 	"task-manager-api/repository"
+	"task-manager-api/usecase"
 )
 
 func main() {
@@ -20,7 +21,8 @@ func main() {
 		fmt.Fprintf(w, `{"message": "Hello from Task Manager API"}`)
 	})
 
-	handler.SetupRoutes(repo)
+	uc := usecase.NewTaskUsecase(repo)
+	handler.SetupRoutes(uc)
 
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

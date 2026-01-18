@@ -1,7 +1,9 @@
 package handler
 
-import "task-manager-api/repository"
+import (
+	"task-manager-api/usecase"
+)
 
-func SetupRoutes(repo repository.TaskRepository) {
-	RegisterTaskRoutes(repo)
+func SetupRoutes(uc *usecase.TaskUsecase) {
+	RegisterTaskRoutes(uc)
 }
