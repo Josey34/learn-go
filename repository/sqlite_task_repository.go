@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 	"task-manager-api/domain"
 
@@ -104,6 +105,59 @@ func (r *SQLiteTaskRepository) Create(task domain.Task) (domain.Task, error) {
 	task.ID = int(id)
 
 	return task, nil
+}
+
+func (r *SQLiteTaskRepository) GetByID(id int) (domain.Task, error) {
+	query := "SELECT * FROM tasks WHERE id = ?"
+
+	row := r.db.QueryRow(query, id)
+
+	var task domain.Task
+
+	err := row.Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.Priority)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.Task{}, errors.New("task not found")
+		}
+		return domain.Task{}, err
+	}
+
+	return task, nil
+}
+
+func (r *SQLiteTaskRepository) Update(updatedTask domain.Task) (domain.Task, error) {
+
+	_, err := r.GetByID(updatedTask.ID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+
+	query := "UPDATE tasks SET title = ?, description = ?, status = ?, priority = ? WHERE id = ?"
+
+	_, err = r.db.Exec(query, updatedTask.Title, updatedTask.Description, updatedTask.Status, updatedTask.Priority, updatedTask.ID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+
+	return updatedTask, nil
+}
+
+func (r *SQLiteTaskRepository) Delete(id int) error {
+	_, err := r.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	query := "DELETE FROM tasks WHERE id = ?"
+
+	_, err = r.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *SQLiteTaskRepository) Close() error {

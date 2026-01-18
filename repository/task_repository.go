@@ -1,10 +1,16 @@
 package repository
 
-import "task-manager-api/domain"
+import (
+	"errors"
+	"task-manager-api/domain"
+)
 
 type TaskRepository interface {
 	GetAll() ([]domain.Task, error)
 	Create(task domain.Task) (domain.Task, error)
+	GetByID(id int) (domain.Task, error)
+	Update(task domain.Task) (domain.Task, error)
+	Delete(id int) error
 	Close() error
 }
 
@@ -33,6 +39,38 @@ func (r *InMemoryTaskRepository) Create(task domain.Task) (domain.Task, error) {
 
 func (r *InMemoryTaskRepository) GetAll() ([]domain.Task, error) {
 	return r.tasks, nil
+}
+
+func (r *InMemoryTaskRepository) GetByID(id int) (domain.Task, error) {
+	for _, task := range r.tasks {
+		if task.ID == id {
+			return task, nil
+		}
+	}
+
+	return domain.Task{}, errors.New("task not found")
+}
+
+func (r *InMemoryTaskRepository) Update(updatedTask domain.Task) (domain.Task, error) {
+	for i, task := range r.tasks {
+		if task.ID == updatedTask.ID {
+			r.tasks[i] = updatedTask
+			return updatedTask, nil
+		}
+	}
+
+	return domain.Task{}, errors.New("task not found")
+}
+
+func (r *InMemoryTaskRepository) Delete(id int) error {
+	for i, task := range r.tasks {
+		if task.ID == id {
+			r.tasks = append(r.tasks[:i], r.tasks[i+1:]...)
+			return nil
+		}
+	}
+
+	return errors.New("task not found")
 }
 
 func (r *InMemoryTaskRepository) Close() error {
