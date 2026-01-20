@@ -28,3 +28,19 @@ type DatabaseError struct {
 func (e *DatabaseError) Error() string {
 	return fmt.Sprintf("Database error during %s: %v", e.Operation, e.Err)
 }
+
+type AuthenticationError struct {
+	Message string
+}
+
+func (e *AuthenticationError) Error() string {
+	return e.Message
+}
+
+type UnauthorizedError struct {
+	Message string
+}
+
+func (e *UnauthorizedError) Error() string {
+	return e.Message
+}

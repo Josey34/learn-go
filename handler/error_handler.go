@@ -41,6 +41,26 @@ func HandleError(w http.ResponseWriter, err error) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(response)
 
+	case *domain.AuthenticationError:
+		// 401 Unauthorized - Login failed
+		response := dto.ErrorResponse{
+			Error:   "AuthenticationError",
+			Message: e.Error(),
+		}
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(response)
+
+	case *domain.UnauthorizedError:
+		// 401 Unauthorized - Invalid/missing token
+		response := dto.ErrorResponse{
+			Error:   "Unauthorized",
+			Message: e.Error(),
+		}
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(response)
+
 	default:
 		// 500 Internal Server Error for unknown errors
 		response := dto.ErrorResponse{
