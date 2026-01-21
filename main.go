@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"task-manager-api/handler"
 	"task-manager-api/middleware"
 	"task-manager-api/repository"
 	"task-manager-api/usecase"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -43,15 +47,45 @@ func main() {
 		log.Fatalf("JWT_SECRET environment variable not set")
 	}
 
-	uc := usecase.NewTaskUsecase(repo)
+	cache := usecase.NewCacheService(5 * time.Minute)
+	uc := usecase.NewTaskUsecase(repo, cache)
 	authUc := usecase.NewAuthUsecase(userRepo, jwtSecret)
-	handler.SetupRoutes(mux, uc, authUc)
+	processor := usecase.NewTaskProcessor(repo)
+
+	handler.SetupRoutes(mux, uc, authUc, processor, cache)
 
 	handler := middleware.Chain(
 		middleware.LoggingMiddleware,
 		middleware.RecoveryMiddleware,
 	)(mux)
 
-	fmt.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	srv := &http.Server{
+		Addr:         ":8080",
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		fmt.Println("Server running on http://localhost:8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("Shutting down server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	log.Println("Server stopped")
+
 }

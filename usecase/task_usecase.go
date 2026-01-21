@@ -1,17 +1,19 @@
 package usecase
 
 import (
+	"fmt"
 	"task-manager-api/domain"
 	"task-manager-api/dto"
 	"task-manager-api/repository"
 )
 
 type TaskUsecase struct {
-	repo repository.TaskRepository
+	repo  repository.TaskRepository
+	cache *CacheService
 }
 
-func NewTaskUsecase(repo repository.TaskRepository) *TaskUsecase {
-	return &TaskUsecase{repo: repo}
+func NewTaskUsecase(repo repository.TaskRepository, cache *CacheService) *TaskUsecase {
+	return &TaskUsecase{repo: repo, cache: cache}
 }
 
 func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseDTO, error) {
@@ -35,6 +37,8 @@ func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseD
 		return dto.TaskResponseDTO{}, err
 	}
 
+	u.cache.Delete("all_tasks")
+
 	return dto.TaskResponseDTO{
 		ID:          createdTask.ID,
 		Title:       createdTask.Title,
@@ -45,6 +49,10 @@ func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseD
 }
 
 func (u *TaskUsecase) GetAllTasks() ([]dto.TaskResponseDTO, error) {
+	if cached, found := u.cache.Get("all_tasks"); found {
+		return cached.([]dto.TaskResponseDTO), nil
+	}
+
 	tasks, err := u.repo.GetAll()
 	if err != nil {
 		return nil, err
@@ -61,23 +69,34 @@ func (u *TaskUsecase) GetAllTasks() ([]dto.TaskResponseDTO, error) {
 		})
 	}
 
+	u.cache.Set("all_tasks", responseDTOs)
+
 	return responseDTOs, nil
 }
 
 func (u *TaskUsecase) GetByID(id int) (dto.TaskResponseDTO, error) {
+	cacheKey := fmt.Sprintf("task_%d", id)
+	if cached, found := u.cache.Get(cacheKey); found {
+		return cached.(dto.TaskResponseDTO), nil
+	}
+
 	task, err := u.repo.GetByID(id)
 
 	if err != nil {
 		return dto.TaskResponseDTO{}, err
 	}
 
-	return dto.TaskResponseDTO{
+	response := dto.TaskResponseDTO{
 		ID:          task.ID,
 		Title:       task.Title,
 		Description: task.Description,
 		Status:      task.Status,
 		Priority:    task.Priority,
-	}, nil
+	}
+
+	u.cache.Set(cacheKey, response)
+
+	return response, nil
 }
 
 func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskResponseDTO, error) {
@@ -104,6 +123,10 @@ func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskR
 		return dto.TaskResponseDTO{}, err
 	}
 
+	cacheKey := fmt.Sprintf("task_%d", id)
+	u.cache.Delete(cacheKey)
+	u.cache.Delete("all_tasks")
+
 	return dto.TaskResponseDTO{
 		ID:          updatedTask.ID,
 		Title:       updatedTask.Title,
@@ -119,5 +142,14 @@ func (u *TaskUsecase) DeleteTask(id int) error {
 		return err
 	}
 
-	return u.repo.Delete(id)
+	err = u.repo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	cacheKey := fmt.Sprintf("task_%d", id)
+	u.cache.Delete(cacheKey)
+	u.cache.Delete("all_tasks")
+
+	return nil
 }
