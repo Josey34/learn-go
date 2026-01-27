@@ -72,3 +72,9 @@ func HandleError(w http.ResponseWriter, err error) {
 		json.NewEncoder(w).Encode(response)
 	}
 }
+
+func WriteError(w http.ResponseWriter, err *domain.ExternalErrors) {
+	w.WriteHeader(err.Status)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(err)
+}
