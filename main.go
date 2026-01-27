@@ -58,6 +58,7 @@ func main() {
 
 	handler := middleware.Chain(
 		rateLimiter.RateLimiterMiddleware,
+		middleware.CorrelationIDMiddleware,
 		middleware.LoggingMiddleware,
 		middleware.RecoveryMiddleware,
 	)(mux)
