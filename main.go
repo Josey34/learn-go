@@ -54,7 +54,10 @@ func main() {
 
 	handler.SetupRoutes(mux, uc, authUc, processor, cache)
 
+	rateLimiter := middleware.NewRateLimiter(20)
+
 	handler := middleware.Chain(
+		rateLimiter.RateLimiterMiddleware,
 		middleware.LoggingMiddleware,
 		middleware.RecoveryMiddleware,
 	)(mux)
