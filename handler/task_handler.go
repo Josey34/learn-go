@@ -68,7 +68,7 @@ func createTask(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	createdTask, err := uc.CreateTask(newTask)
+	createdTask, err := uc.CreateTask(r.Context(), newTask)
 
 	if err != nil {
 		HandleError(w, err)

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"task-manager-api/domain"
 	"task-manager-api/dto"
@@ -16,7 +17,7 @@ func NewTaskUsecase(repo repository.TaskRepository, cache *CacheService) *TaskUs
 	return &TaskUsecase{repo: repo, cache: cache}
 }
 
-func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseDTO, error) {
+func (u *TaskUsecase) CreateTask(ctx context.Context, createReq dto.CreateTaskDTO) (dto.TaskResponseDTO, error) {
 	if createReq.Title == "" {
 		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Title", Message: "title is required"}
 	}
@@ -31,7 +32,13 @@ func (u *TaskUsecase) CreateTask(createReq dto.CreateTaskDTO) (dto.TaskResponseD
 		Priority:    createReq.Priority,
 	}
 
-	createdTask, err := u.repo.Create(task)
+	var createdTask domain.Task
+
+	err := RetryWithBackoff(ctx, func() error {
+		var repoErr error
+		createdTask, repoErr = u.repo.Create(task)
+		return repoErr
+	})
 
 	if err != nil {
 		return dto.TaskResponseDTO{}, err
