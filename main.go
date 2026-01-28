@@ -52,7 +52,7 @@ func main() {
 	authUc := usecase.NewAuthUsecase(userRepo, jwtSecret)
 	processor := usecase.NewTaskProcessor(repo)
 
-	handler.SetupRoutes(mux, uc, authUc, processor, cache)
+	handler.SetupRoutes(mux, uc, authUc, processor, cache, repo)
 
 	rateLimiter := middleware.NewRateLimiter(20)
 
