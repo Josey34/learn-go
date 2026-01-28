@@ -44,7 +44,7 @@ func RegisterTaskRoutes(mux *http.ServeMux, uc *usecase.TaskUsecase) {
 func getAllTasks(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase) {
 	w.Header().Set("Content-Type", "application/json")
 
-	tasks, err := uc.GetAllTasks()
+	tasks, err := uc.GetAllTasks(r.Context())
 	if err != nil {
 		HandleError(w, err)
 		return
@@ -94,7 +94,7 @@ func getTaskByID(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase
 		return
 	}
 
-	task, err := uc.GetByID(id)
+	task, err := uc.GetByID(r.Context(), id)
 	if err != nil {
 		HandleError(w, err)
 		return
@@ -127,7 +127,7 @@ func updateTask(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	updatedTask, err := uc.UpdateTask(id, updateReq)
+	updatedTask, err := uc.UpdateTask(r.Context(), id, updateReq)
 	if err != nil {
 		HandleError(w, err)
 		return
@@ -152,7 +152,7 @@ func deleteTask(w http.ResponseWriter, r *http.Request, uc *usecase.TaskUsecase)
 		return
 	}
 
-	err = uc.DeleteTask(id)
+	err = uc.DeleteTask(r.Context(), id)
 	if err != nil {
 		HandleError(w, err)
 		return

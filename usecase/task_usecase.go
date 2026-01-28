@@ -55,12 +55,19 @@ func (u *TaskUsecase) CreateTask(ctx context.Context, createReq dto.CreateTaskDT
 	}, nil
 }
 
-func (u *TaskUsecase) GetAllTasks() ([]dto.TaskResponseDTO, error) {
+func (u *TaskUsecase) GetAllTasks(ctx context.Context) ([]dto.TaskResponseDTO, error) {
 	if cached, found := u.cache.Get("all_tasks"); found {
 		return cached.([]dto.TaskResponseDTO), nil
 	}
 
-	tasks, err := u.repo.GetAll()
+	var tasks []domain.Task
+
+	err := RetryWithBackoff(ctx, func() error {
+		var repoErr error
+		tasks, repoErr = u.repo.GetAll()
+		return repoErr
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +88,19 @@ func (u *TaskUsecase) GetAllTasks() ([]dto.TaskResponseDTO, error) {
 	return responseDTOs, nil
 }
 
-func (u *TaskUsecase) GetByID(id int) (dto.TaskResponseDTO, error) {
+func (u *TaskUsecase) GetByID(ctx context.Context, id int) (dto.TaskResponseDTO, error) {
 	cacheKey := fmt.Sprintf("task_%d", id)
 	if cached, found := u.cache.Get(cacheKey); found {
 		return cached.(dto.TaskResponseDTO), nil
 	}
 
-	task, err := u.repo.GetByID(id)
+	var task domain.Task
+
+	err := RetryWithBackoff(ctx, func() error {
+		var repoErr error
+		task, repoErr = u.repo.GetByID(id)
+		return repoErr
+	})
 
 	if err != nil {
 		return dto.TaskResponseDTO{}, err
@@ -106,7 +119,7 @@ func (u *TaskUsecase) GetByID(id int) (dto.TaskResponseDTO, error) {
 	return response, nil
 }
 
-func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskResponseDTO, error) {
+func (u *TaskUsecase) UpdateTask(ctx context.Context, id int, updateReq dto.UpdateTaskDTO) (dto.TaskResponseDTO, error) {
 	if updateReq.Title == "" {
 		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Title", Message: "Title is required"}
 	}
@@ -115,7 +128,14 @@ func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskR
 		return dto.TaskResponseDTO{}, &domain.ValidationError{Field: "Description", Message: "Description is required"}
 	}
 
-	existingTask, err := u.repo.GetByID(id)
+	var existingTask domain.Task
+
+	err := RetryWithBackoff(ctx, func() error {
+		var repoErr error
+		existingTask, repoErr = u.repo.GetByID(id)
+		return repoErr
+	})
+
 	if err != nil {
 		return dto.TaskResponseDTO{}, err
 	}
@@ -125,10 +145,13 @@ func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskR
 	existingTask.Status = updateReq.Status
 	existingTask.Priority = updateReq.Priority
 
-	updatedTask, err := u.repo.Update(existingTask)
-	if err != nil {
-		return dto.TaskResponseDTO{}, err
-	}
+	var updatedTask domain.Task
+
+	err = RetryWithBackoff(ctx, func() error {
+		var repoErr error
+		updatedTask, repoErr = u.repo.Update(existingTask)
+		return repoErr
+	})
 
 	cacheKey := fmt.Sprintf("task_%d", id)
 	u.cache.Delete(cacheKey)
@@ -143,13 +166,18 @@ func (u *TaskUsecase) UpdateTask(id int, updateReq dto.UpdateTaskDTO) (dto.TaskR
 	}, nil
 }
 
-func (u *TaskUsecase) DeleteTask(id int) error {
-	_, err := u.repo.GetByID(id)
+func (u *TaskUsecase) DeleteTask(ctx context.Context, id int) error {
+	err := RetryWithBackoff(ctx, func() error {
+		_, repoErr := u.repo.GetByID(id)
+		return repoErr
+	})
 	if err != nil {
 		return err
 	}
 
-	err = u.repo.Delete(id)
+	err = RetryWithBackoff(ctx, func() error {
+		return u.repo.Delete(id)
+	})
 	if err != nil {
 		return err
 	}
