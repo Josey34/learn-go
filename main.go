@@ -74,7 +74,9 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
+	// TESTS
 	testConcurrentLogger()
+	testRaceCondition()
 
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
@@ -108,4 +110,20 @@ func testConcurrentLogger() {
 	fmt.Println("Starting concurrent logging...")
 	logger.LogMultiple(messages)
 	fmt.Println("Done!")
+}
+
+func testRaceCondition() {
+	tc := usecase.NewTaskCounter()
+	taskIDs := make([]int, 1000)
+	for i := 0; i < 1000; i++ {
+		taskIDs[i] = 1
+	}
+
+	result := tc.CountTasksWrong(taskIDs)
+	expectedSum := 1000 + 1000 // 1000 taskIDs (each=1) + 1000 goroutine increments
+
+	fmt.Printf("Result: %d, Expected: %d\n", result, expectedSum)
+	if result != expectedSum {
+		fmt.Printf("RACE CONDITION! Lost %d updates\n", expectedSum-result)
+	}
 }
