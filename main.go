@@ -74,6 +74,8 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
+	testConcurrentLogger()
+
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -92,4 +94,18 @@ func main() {
 	}
 	log.Println("Server stopped")
 
+}
+
+func testConcurrentLogger() {
+	logger := usecase.NewConcurrentLogger()
+	messages := []string{
+		"First message",
+		"Second message",
+		"Third message",
+		"Fourth message",
+		"Fifth message",
+	}
+	fmt.Println("Starting concurrent logging...")
+	logger.LogMultiple(messages)
+	fmt.Println("Done!")
 }
