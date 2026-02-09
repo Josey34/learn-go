@@ -113,13 +113,17 @@ func testConcurrentLogger() {
 }
 
 func testRaceCondition() {
-	tc := usecase.NewTaskCounter()
+	tc := usecase.NewTaskCounter(50)
 	taskIDs := make([]int, 1000)
 	for i := 0; i < 1000; i++ {
 		taskIDs[i] = 1
 	}
 
-	result := tc.CountTasksWrong(taskIDs)
+	result, err := tc.CountTasks(taskIDs)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
 	expectedSum := 1000 + 1000 // 1000 taskIDs (each=1) + 1000 goroutine increments
 
 	fmt.Printf("Result: %d, Expected: %d\n", result, expectedSum)

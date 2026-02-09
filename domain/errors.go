@@ -44,3 +44,16 @@ type UnauthorizedError struct {
 func (e *UnauthorizedError) Error() string {
 	return e.Message
 }
+
+type QueueError struct {
+	Message string
+}
+
+func (e *QueueError) Error() string {
+	return e.Message
+}
+
+var (
+	ErrQueueFull  = &QueueError{Message: "queue is full"}
+	ErrQueueEmpty = &QueueError{Message: "queue is empty"}
+)
