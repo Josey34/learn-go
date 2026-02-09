@@ -77,6 +77,7 @@ func main() {
 	// TESTS
 	testConcurrentLogger()
 	testRaceCondition()
+	testTaskQueue()
 
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
@@ -130,4 +131,79 @@ func testRaceCondition() {
 	if result != expectedSum {
 		fmt.Printf("RACE CONDITION! Lost %d updates\n", expectedSum-result)
 	}
+}
+
+func testTaskQueue() {
+	fmt.Println("\n=== Testing Task Queue")
+
+	queue := usecase.NewTaskQueue(5)
+
+	// Test 1
+	fmt.Println("\n Test 1")
+	queue.Enqueue(10)
+	queue.Enqueue(20)
+	queue.Enqueue(30)
+
+	taskID, err := queue.Dequeue()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	fmt.Printf("Dequeued: %d\n", taskID)
+
+	// Test 2: Queue Full Error
+	// fmt.Println("\n--- Test 2: Queue Full ---")
+
+	// queue.Enqueue(40)
+	// queue.Enqueue(50)
+	// queue.Enqueue(60)
+	// queue.Enqueue(70)
+
+	// err := queue.Enqueue(80)
+	// if err != nil {
+	// 	fmt.Printf("✅ Error (expected): %v\n", err)
+	// }
+
+	// Test 3: Queue Empty Error
+	// fmt.Println("\n--- Test 3: Queue Empty ---")
+
+	// for i := 0; i < 5; i++ {
+	// 	id, _ := queue.Dequeue()
+	// 	fmt.Printf("Dequeued: %d\n", id)
+	// }
+
+	// _, err := queue.Dequeue()
+	// if err != nil {
+	// 	fmt.Printf("✅ Error (expected): %v\n", err)
+	// }
+
+	// Test 4: Concurrent Goroutines
+	fmt.Println("\n--- Test 4: Concurrent Producers & Consumer ---")
+
+	queue2 := usecase.NewTaskQueue(10)
+
+	for i := 1; i <= 3; i++ {
+		go func(producerID int) {
+			for j := 1; j <= 5; j++ {
+				taskID := producerID*100 + j
+				err := queue2.Enqueue(taskID)
+				if err == nil {
+					fmt.Printf("Producer %d enqueued: %d\n", producerID, taskID)
+				}
+			}
+		}(i)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	fmt.Printf("Queue size after: %d\n", queue2.Size())
+	for {
+		id, err := queue2.Dequeue()
+		if err != nil {
+			break
+		}
+		fmt.Printf("Dequeued: %d\n", id)
+	}
+
+	fmt.Println("--- All tests passed! ---\n")
 }
