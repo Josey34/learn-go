@@ -79,6 +79,7 @@ func main() {
 	testRaceCondition()
 	testTaskQueue()
 	testTaskStream()
+	testTaskRacer()
 
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
@@ -229,4 +230,16 @@ func testTaskStream() {
 	stream.Close()
 
 	fmt.Println("--- Task Stream test passed! ---\n")
+}
+
+func testTaskRacer() {
+	fmt.Println("\n=== Testing Task Racer (Exercise 5) ===")
+
+	for i := 1; i <= 5; i++ {
+		taskRacer := usecase.NewTaskRacer()
+		winner := taskRacer.StartRace()
+		fmt.Printf("Race %d Winner: %s\n", i, winner)
+	}
+
+	fmt.Println("--- Task Racer test passed! ---\n")
 }
