@@ -78,6 +78,7 @@ func main() {
 	testConcurrentLogger()
 	testRaceCondition()
 	testTaskQueue()
+	testTaskStream()
 
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
@@ -206,4 +207,26 @@ func testTaskQueue() {
 	}
 
 	fmt.Println("--- All tests passed! ---\n")
+}
+
+func testTaskStream() {
+	fmt.Println("\n=== Testing Task Stream (Exercise 4) ===")
+
+	stream := usecase.NewTaskStream()
+
+	stream.Start()
+
+	stream.Send(1)
+	stream.Send(2)
+	stream.Send(3)
+
+	time.Sleep(200 * time.Millisecond)
+
+	for i := 0; i < 3; i++ {
+		result := stream.GetResult()
+		fmt.Printf("Received result: %s\n", result)
+	}
+	stream.Close()
+
+	fmt.Println("--- Task Stream test passed! ---\n")
 }
