@@ -80,6 +80,7 @@ func main() {
 	testTaskQueue()
 	testTaskStream()
 	testTaskRacer()
+	testFanIn()
 
 	go func() {
 		fmt.Println("Server running on http://localhost:8080")
@@ -242,4 +243,28 @@ func testTaskRacer() {
 	}
 
 	fmt.Println("--- Task Racer test passed! ---\n")
+}
+
+func testFanIn() {
+	fmt.Println("\n=== Testing Fan-In (Exercise 6) ===")
+
+	fanIn := usecase.NewFanIn(3)
+	output := fanIn.Merge()
+	for i := 1; i <= 3; i++ {
+		go func(sourceID int) {
+			for j := 1; j <= 3; j++ {
+				message := fmt.Sprintf("Source %d - Message %d", sourceID, j)
+				fanIn.Send(sourceID, message)
+			}
+		}(i)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+	for i := 0; i < 9; i++ {
+		msg := <-output
+		fmt.Printf("Received: %s\n", msg)
+	}
+	fanIn.Close()
+
+	fmt.Println("--- Fan-In test passed! ---\n")
 }
